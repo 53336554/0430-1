@@ -5,7 +5,7 @@ echo "准备开始安装"
 read -p "回车后开始安装"
 echo "请输入你的内网ip" 
 read -p "内网ip： " ip
-cp /root/PUBG-Radar-Onekey/restart.sh /root/restart.sh
+cp /root/PUBG_XiNian_02/restart.sh /root/restart.sh
 chmod +x restart.sh
 yum -y install 
 wgetwget -N --no-check-certificate https://softs.fun/Bash/ssr.sh && chmod +x ssr.sh && bash ssr.sh
