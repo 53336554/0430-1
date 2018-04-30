@@ -1,15 +1,15 @@
 #!/bin/bash
 echo "欢迎使用一键搭建"
-echo "即将搭建的是4.26版本"
+echo "即将搭建的是4.30版本"
 echo "准备开始安装"
 read -p "回车后开始安装"
 echo "请输入你的内网ip" 
 read -p "内网ip： " ip
 cp /root/PUBG-Radar-Onekey/restart.sh /root/restart.sh
 chmod +x restart.sh
-wget --no-check-certificate -O shadowsocks-all.sh https://raw.githubusercontent.com/teddysun/shadowsocks_install/master/shadowsocks-all.sh
-chmod +x shadowsocks-all.sh
-./shadowsocks-all.sh 2>&1 | tee shadowsocks-all.log
+yum -y install 
+wgetwget -N --no-check-certificate https://softs.fun/Bash/ssr.sh && chmod +x ssr.sh && bash ssr.sh
+
 
 echo "ss搭建成，请记住连接信息"
 read -p "记住了吗？任意键继续" 
@@ -28,8 +28,8 @@ cd libpcap-1.8.1
 make
 make install
 
-git clone https://github.com/794959818/pubg1.git
-cd pubg1/
+git clone https://github.com/1264527381/PUBG_XiNian_02.git
+cd PUBG_XiNian_02/
 npm i
 npm i -g pino
 npm install -g forever
