@@ -1,4 +1,4 @@
-﻿const appData = {
+const appData = {
   autoRefresh: true,
   refreshInterval: 1000,
   gsTime: 0,
@@ -25,14 +25,14 @@ vapp = new Vue({
     lastPacketTime: '',
     mapType: 'erangel',
     followMe: true,
-    isDesert: false,
+    isDesert: true,
     showBox: true,
     showAirDrop: true,
     showCar: true,
 
-    showItemTop: true,
-    showItemDuoDuo: true,
-    showItemBasic: true,
+    showItemTop: false,
+    showItemDuoDuo: false,
+    showItemBasic: false,
     showItemAR: false,
     showItemSR: false,
     showItemHealth: false,
@@ -42,15 +42,15 @@ vapp = new Vue({
 
     // --------------------------------------------------------------------------
 
-    showBack: true,
-    showArmor2: true,
-    showHead2: true,
+    showBack: false,
+    showArmor2: false,
+    showHead2: false,
     showArmor3: true,
     showHead3: true,
     showFirstAid: true,
     showMedKit: true,
-    showDrink: true,
-    showGrenade: true,
+    showDrink: false,
+    showGrenade: false,
     showSmokeBomb: false,
     showAmmo556: false,
     showAmmo762: false,
@@ -58,20 +58,20 @@ vapp = new Vue({
     showLowST: true,
     showHighST: true,
     showARCnFH: false,
-    showARSuppressor: true,
-    showARExtended: true,
+    showARSuppressor: false,
+    showARExtended: false,
     showARStock: false,
     showSRFlashHider: false,
     showSRSuppressor: true,
     showSRExtended: false,
-    showSRStock: false,
-    showM16A4: true,
+    showSRStock: true,
+    showM16A4: false,
     showSCAR: true,
-    showAK47: true,
+    showAK47: false,
     showHK416: true,
-    showPan: true,
-    showMini14: true,
-    showSKS: true,
+    showPan: false,
+    showMini14: false,
+    showSKS: false,
     showKar98k: true,
 
     // --------------------------------------------------------------------------
@@ -216,7 +216,7 @@ vapp = new Vue({
   methods: {
     toggleRefresh () {
       if (appData.autoRefresh) {
-        appData.autoRefresh = true
+        appData.autoRefresh = false
         this.toggleButtonText = 'Start Refresh'
       } else {
         appData.autoRefresh = true
@@ -224,7 +224,7 @@ vapp = new Vue({
       }
     },
     setFPS (fps) {
-      appData.refreshInterval = Math.floor(20 / fps)
+      appData.refreshInterval = Math.floor(1000 / fps)
     },
     showNoItems () {
       this.showItemAll = this.showItemDuoDuo = this.showItemTop = this.showItemBasic = this.showItemAR = this.showItemSR = this.showItemHealth = this.showItemThrow = this.showItemAmmo = this.showItemAll = false
@@ -243,7 +243,7 @@ function getMapSource (mapType) {
     ? 'erangel/v11'
     : 'miramar/v5'
   // if false, will use https://tiles2-v2.pubgmap.net/tiles/erangel/v11/{z}/{x}/{y}.png not sure if it is stable or not. But it will have more zoom, up to 5. Local only has up to 4
-  let useLocalResource = true
+  let useLocalResource = false
   const mapBase = useLocalResource
     ? '../maptiles'
     : 'https://tiles2-v2.pubgmap.net/tiles'
