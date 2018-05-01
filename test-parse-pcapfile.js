@@ -1,43 +1,39 @@
-// Usage: LOGLEVEL=info node test-parse-pcapfile.js '/DIR/pubg-game1.pcap' | pino
+// Usage: LOGLEVEL=info node test-getcmd-pcapfile.js '/SOME/COOL/DIR/pubg-game1.pcap' | pino
 
 const PacketByPacket = require('p-by-p')
 const PacketParser = require('./backend/packetparser')
 const utils = require('./backend/utils')
 const logger = require('./backend/logger')
 const CONSTS = require('./backend/constants')
+const bunchStash = require('./backend/bunchstash')
+const gamestate = require('./backend/gamestate')
+const stringify = require("json-stringify-pretty-compact")
 
 const parser = PacketParser()
 
 const optionSummary = {}
 
-function addToSummary (options) {
-  for (let key in options) {
-    if (options[key] === true) {
-      if (optionSummary[key] == null) {
-        optionSummary[key] = 1
-      } else {
-        optionSummary[key]++
-      }
-    }
-  }
-}
-
-async function main () {
+function main () {
   const args = process.argv.slice(2)
-  if (args.length !== 1) {
-    console.log(`Usage: test-parse-pcapfile.js <pcapfile>`)
+  if (args.length !== 1 && args.length !== 2) {
+    console.log(`Usage: test-getcmd-pcapfile.js <pcapfile> <countToSendToGameState>`)
     console.log(
-      ` e.g.: test-parse-pcapfile.js /DIR/pubg-game1.pcap`
+      ` e.g.: test-getcmd-pcapfile.js /DIR/pubg-game1.pcap`
     )
   }
   const pbyp = PacketByPacket(args[0])
+  const eventCountMap = new Map()
 
-  let eventCount = 0
-  let packetNumber = 0
-  let invalidEvent = 0
-  let channelSet = new Set()
+  let bunchEvents = []
   let errCount = 0
-  let totalBunchCount = 0
+  let packetNumber = 0
+  let allFinalEvents = []
+
+  const countType = (type) => {
+    const old = eventCountMap.get(type)
+    const newValue = old == null ? 1 : old + 1
+    eventCountMap.set(type, newValue)
+  }
   pbyp.on('packet', packet => {
     // packet contains { header, data }
     packetNumber++
@@ -45,42 +41,61 @@ async function main () {
     try {
       result = parser.parse(packet.data, packet.header.timestamp, packetNumber)
     } catch (err) {
-      // console.log(err)
+      console.log('Parsing error:', err)
       errCount++
     }
-    // parser would only return the event that we are interested in, otherwise, it returns null
-    if (result != null) {
-      eventCount++
-      if (result.valid === false) {
-        invalidEvent++ // for those malformatted bunch udp packet
-        logger.warn({ packetNumber, ...result }, 'Got Invalid Event')
-      } else {
-        logger.debug({ packetNumber, ...result }, 'Got Event')
-      }
-      for (let bunch of result.data) {
-        totalBunchCount++
-        addToSummary(bunch.options)
-        if (bunch.chIndex === 0) {
-          console.log(bunch)
-        }
-        channelSet.add(bunch.chIndex)
-      }
+    if (result != null && result.type === CONSTS.EventTypes.UEBUNCHES && result.valid) {
+      bunchEvents.push(result)
     }
   })
   pbyp.on('error', err => {
     logger.error(err, 'Error happend')
   })
   pbyp.on('end', result => {
-    logger.warn({ parserResult: result, eventCount, invalidEvent, totalChannel: channelSet.size, totalBunchCount }, 'pcap processing finished')
-    logger.warn(optionSummary, 'bunch options summary')
-    logger.warn({ errCount }, 'errCount')
+    if (errCount) {
+      logger.error({ errCount }, 'During parse, got errors')
+    }
+    // got all the packet parsed into events, now feed them into stash
+    logger.warn({count: bunchEvents.length}, 'Got all the UEBunch events')
+    for (let evt of bunchEvents) {
+      const newEvts = bunchStash.feedEvent(evt)
+      if (newEvts) {
+        for (let newEvt of newEvts) {
+          if (newEvt.type === CONSTS.EventTypes.GAMESTART) {
+            gamestate.resetGameState()
+          }
+          countType(newEvt.type)
+          allFinalEvents.push(newEvt)
+        }
+      }
+    }
+    let printCount = 0
+    for (let evt of allFinalEvents) {
+      printCount++
+      printEvent(printCount, evt)
+      if (printCount > 200000) {
+        break
+      }
+    }
+    logger.warn({count: allFinalEvents.length}, 'Got all final events')
+    logger.warn('Count by result.type')
+    for (let pair of eventCountMap) {
+      console.log(pair)
+    }
+    if (args[1]) {
+      const countToSendToGameState = Math.min(parseInt(args[1]), allFinalEvents.length)
+      for (let i = 0; i < countToSendToGameState; i++) {
+        gamestate.processPUBGEvent(allFinalEvents[i])
+      }
+      logger.warn(`Feed ${countToSendToGameState} events into gamestate.`)
+      logger.warn(stringify(gamestate.dump()))
+    }
   })
   pbyp.resume()
 }
 
-main().catch(err => {
-  console.log('unexpected error', err)
-  cleanup.then(() => {
-    process.exit(2)
-  })
-})
+function printEvent (count, evt) {
+  console.log(`[${utils.toLocalISOString(evt.time)} - ${evt.type.toString()} - guid:${evt.guid} -- ${JSON.stringify(evt.data)} --- (${count})`)
+}
+
+main()
